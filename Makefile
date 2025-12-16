@@ -14,8 +14,15 @@ PASSENGER_DIR = src/services/passenger
 # Docker Compose file
 DOCKER_COMPOSE_FILE = deployments/docker-compose/docker-compose.infrastructure.yaml
 
-# Maven command (use mvnw if available, otherwise mvn)
-MVN = mvn
+# Gradle command (use gradlew if available, otherwise gradle)
+# On Windows, use: .\gradlew.bat
+# On Unix/Mac, use: ./gradlew
+# Run from root directory for multi-module support
+ifeq ($(OS),Windows_NT)
+    GRADLE = .\gradlew.bat
+else
+    GRADLE = ./gradlew
+endif
 
 # Help target
 help:
@@ -36,10 +43,14 @@ help:
 	@echo "  make docker-compose     - Alias for up"
 	@echo ""
 	@echo "Run commands:"
+	@echo "  make run-all            - Run all services in parallel (uses separate processes)"
 	@echo "  make run-apigateway     - Run API Gateway only (recommended: use separate terminal)"
 	@echo "  make run-flight         - Run Flight Service only (recommended: use separate terminal)"
 	@echo "  make run-booking        - Run Booking Service only (recommended: use separate terminal)"
 	@echo "  make run-passenger      - Run Passenger Service only (recommended: use separate terminal)"
+	@echo ""
+	@echo "  Note: Use 'make run-all' to start all services at once, or run each service"
+	@echo "  in a separate terminal for better log visibility."
 	@echo ""
 	@echo "Test commands:"
 	@echo "  make test               - Test all services (buildingblocks + 4 services)"
@@ -59,31 +70,31 @@ build: build-buildingblocks build-apigateway build-flight build-booking build-pa
 # Build buildingblocks (must be built first as it's a dependency for other services)
 build-buildingblocks:
 	@echo "🔨 Building buildingblocks..."
-	cd $(BUILDINGBLOCKS_DIR) && $(MVN) clean install -DskipTests
+	$(GRADLE) :buildingblocks:clean :buildingblocks:build -x test
 	@echo "✅ buildingblocks built successfully!"
 
 # Build API Gateway
 build-apigateway: build-buildingblocks
 	@echo "🔨 Building API Gateway..."
-	cd $(APIGATEWAY_DIR) && $(MVN) clean install -DskipTests
+	$(GRADLE) :apigateway:clean :apigateway:build -x test
 	@echo "✅ API Gateway built successfully!"
 
 # Build Flight Service
 build-flight: build-buildingblocks
 	@echo "🔨 Building Flight Service..."
-	cd $(FLIGHT_DIR) && $(MVN) clean install -DskipTests
+	$(GRADLE) :flight:clean :flight:build -x test
 	@echo "✅ Flight Service built successfully!"
 
 # Build Booking Service
 build-booking: build-buildingblocks
 	@echo "🔨 Building Booking Service..."
-	cd $(BOOKING_DIR) && $(MVN) clean install -DskipTests
+	$(GRADLE) :booking:clean :booking:build -x test
 	@echo "✅ Booking Service built successfully!"
 
 # Build Passenger Service
 build-passenger: build-buildingblocks
 	@echo "🔨 Building Passenger Service..."
-	cd $(PASSENGER_DIR) && $(MVN) clean install -DskipTests
+	$(GRADLE) :passenger:clean :passenger:build -x test
 	@echo "✅ Passenger Service built successfully!"
 
 # Docker Compose commands
@@ -109,22 +120,44 @@ down:
 # Run API Gateway
 run-apigateway:
 	@echo "🚀 Starting API Gateway..."
-	cd $(APIGATEWAY_DIR) && $(MVN) spring-boot:run
+	$(GRADLE) :apigateway:bootRun
 
 # Run Flight Service
 run-flight:
 	@echo "🚀 Starting Flight Service..."
-	cd $(FLIGHT_DIR) && $(MVN) spring-boot:run
+	$(GRADLE) :flight:bootRun
 
 # Run Booking Service
 run-booking:
 	@echo "🚀 Starting Booking Service..."
-	cd $(BOOKING_DIR) && $(MVN) spring-boot:run
+	$(GRADLE) :booking:bootRun
 
 # Run Passenger Service
 run-passenger:
 	@echo "🚀 Starting Passenger Service..."
-	cd $(PASSENGER_DIR) && $(MVN) spring-boot:run
+	$(GRADLE) :passenger:bootRun
+
+# Run all services in parallel (Windows PowerShell approach)
+run-all:
+	@echo "🚀 Starting all microservices in parallel..."
+	@echo "⚠️  Each service will run in a separate window. Press Ctrl+C in each window to stop."
+ifeq ($(OS),Windows_NT)
+	@powershell -Command "$$pwd = Get-Location; Start-Process powershell -ArgumentList '-NoExit', '-Command', \"cd '$$pwd'; .\gradlew.bat :apigateway:bootRun\""
+	@powershell -Command "Start-Sleep -Seconds 2"
+	@powershell -Command "$$pwd = Get-Location; Start-Process powershell -ArgumentList '-NoExit', '-Command', \"cd '$$pwd'; .\gradlew.bat :flight:bootRun\""
+	@powershell -Command "Start-Sleep -Seconds 2"
+	@powershell -Command "$$pwd = Get-Location; Start-Process powershell -ArgumentList '-NoExit', '-Command', \"cd '$$pwd'; .\gradlew.bat :passenger:bootRun\""
+	@powershell -Command "Start-Sleep -Seconds 2"
+	@powershell -Command "$$pwd = Get-Location; Start-Process powershell -ArgumentList '-NoExit', '-Command', \"cd '$$pwd'; .\gradlew.bat :booking:bootRun\""
+	@echo "✅ All services started in separate windows!"
+else
+	@echo "Starting services in background..."
+	@$(GRADLE) :apigateway:bootRun & \
+	$(GRADLE) :flight:bootRun & \
+	$(GRADLE) :passenger:bootRun & \
+	$(GRADLE) :booking:bootRun & \
+	wait
+endif
 
 # Test all services
 test: test-buildingblocks test-apigateway test-flight test-booking test-passenger
@@ -133,45 +166,47 @@ test: test-buildingblocks test-apigateway test-flight test-booking test-passenge
 # Test buildingblocks
 test-buildingblocks:
 	@echo "🧪 Testing buildingblocks..."
-	cd $(BUILDINGBLOCKS_DIR) && $(MVN) test
+	$(GRADLE) :buildingblocks:test
 
 # Test API Gateway
 test-apigateway:
 	@echo "🧪 Testing API Gateway..."
-	cd $(APIGATEWAY_DIR) && $(MVN) test
+	$(GRADLE) :apigateway:test
 
 # Test Flight Service
 test-flight:
 	@echo "🧪 Testing Flight Service..."
-	cd $(FLIGHT_DIR) && $(MVN) test
+	$(GRADLE) :flight:test
 
 # Test Booking Service
 test-booking:
 	@echo "🧪 Testing Booking Service..."
-	cd $(BOOKING_DIR) && $(MVN) test
+	$(GRADLE) :booking:test
 
 # Test Passenger Service
 test-passenger:
 	@echo "🧪 Testing Passenger Service..."
-	cd $(PASSENGER_DIR) && $(MVN) test
+	$(GRADLE) :passenger:test
 
 # Clean all services
 clean:
 	@echo "🧹 Cleaning all services..."
-	cd $(BUILDINGBLOCKS_DIR) && $(MVN) clean
-	cd $(APIGATEWAY_DIR) && $(MVN) clean
-	cd $(FLIGHT_DIR) && $(MVN) clean
-	cd $(BOOKING_DIR) && $(MVN) clean
-	cd $(PASSENGER_DIR) && $(MVN) clean
+	$(GRADLE) clean
 	@echo "✅ All services cleaned!"
 
-# Clean all services and remove target directories
+# Clean all services and remove build directories
 clean-all: clean
-	@echo "🧹 Removing target directories..."
+	@echo "🧹 Removing build and target directories..."
+	rm -rf $(BUILDINGBLOCKS_DIR)/build
+	rm -rf $(APIGATEWAY_DIR)/build
+	rm -rf $(FLIGHT_DIR)/build
+	rm -rf $(BOOKING_DIR)/build
+	rm -rf $(PASSENGER_DIR)/build
 	rm -rf $(BUILDINGBLOCKS_DIR)/target
 	rm -rf $(APIGATEWAY_DIR)/target
 	rm -rf $(FLIGHT_DIR)/target
 	rm -rf $(BOOKING_DIR)/target
 	rm -rf $(PASSENGER_DIR)/target
-	@echo "✅ All target directories removed!"
+	rm -rf .gradle
+	@echo "✅ All build and target directories removed!"
 
