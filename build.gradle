@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.1' apply false
+    id 'io.spring.dependency-management' version '1.1.6' apply false
+}
+
+allprojects {
+    group = 'io.bookingmicroservices'
+    version = '1.0.0'
+    
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+    
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(23)
+        }
+    }
+    
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+}
+
+// Task to run all services
+// Note: bootRun tasks block, so true parallel execution requires separate processes
+// This task demonstrates the concept, but for actual parallel execution, use the Makefile target 'run-all'
+task runAllServices {
+    group = 'application'
+    description = 'Runs all microservices (Note: runs sequentially as bootRun blocks. Use make run-all for parallel execution)'
+    dependsOn ':apigateway:bootRun', ':flight:bootRun', ':booking:bootRun', ':passenger:bootRun'
+}
+
+// Configure bootRun tasks
+tasks.matching { it.name == 'bootRun' }.configureEach {
+    doFirst {
+        logger.lifecycle("Starting ${project.name}...")
+    }
+}

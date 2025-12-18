@@ -1,0 +1,83 @@
+plugins {
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'com.google.protobuf' version '0.9.4'
+}
+
+dependencies {
+    implementation project(':buildingblocks')
+    
+    // Spring Boot Web (for REST controllers)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // Spring Data JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    
+    // Spring Data MongoDB
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    
+    // Spring Security (for @PreAuthorize)
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    
+    // Jakarta Persistence API
+    implementation 'jakarta.persistence:jakarta.persistence-api'
+    
+    // UUID Creator
+    implementation 'com.github.f4b6a3:uuid-creator:6.0.0'
+    
+    // Swagger annotations
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.27'
+    
+    // JetBrains annotations
+    implementation 'org.jetbrains:annotations:24.0.1'
+    
+    // gRPC Spring Boot starters
+    implementation 'net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE'
+    implementation 'net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE'
+    
+    // gRPC
+    implementation 'io.grpc:grpc-core:1.57.2'
+    implementation 'io.grpc:grpc-protobuf:1.57.2'
+    implementation 'io.grpc:grpc-stub:1.57.2'
+    implementation 'io.grpc:grpc-netty-shaded:1.57.2'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.36'
+    annotationProcessor 'org.projectlombok:lombok:1.18.36'
+    
+    // Javax
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.2"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.57.2"
+        }
+    }
+    generateProtoTasks {
+        all().configureEach { task ->
+            task.builtins {
+                java {}
+            }
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir 'src/main/proto'
+        }
+    }
+}
+
+tasks.named('processResources') {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

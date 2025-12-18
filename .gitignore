@@ -38,6 +38,13 @@ replay_pid*
 # Maven build directory
 /target
 
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
 # OS-specific files
 .DS_Store
 Thumbs.db

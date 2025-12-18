@@ -1,0 +1,16 @@
+rootProject.name = 'booking-microservices'
+
+include 'apigateway'
+project(':apigateway').projectDir = file('src/apigateway')
+
+include 'buildingblocks'
+project(':buildingblocks').projectDir = file('src/buildingblocks')
+
+include 'booking'
+project(':booking').projectDir = file('src/services/booking')
+
+include 'flight'
+project(':flight').projectDir = file('src/services/flight')
+
+include 'passenger'
+project(':passenger').projectDir = file('src/services/passenger')
